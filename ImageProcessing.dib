@@ -1,0 +1,80 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"aliases":[],"languageName":"csharp","name":"csharp"}]}}
+
+#!csharp
+
+#r "nuget: Plotly.NET.Interactive"
+#r "nuget: Plotly.NET.CSharp"
+
+#!csharp
+
+using System.Drawing;
+using Plotly.NET.CSharp;
+
+#!csharp
+
+// var image = "face_grayscale";
+var image = "landscape";
+var filePath = $"examples/{image}.bmp";
+var outputPath = $"output/{image}.bmp";
+
+var bmp = new Bitmap(filePath, true);
+
+#!csharp
+
+Bitmap Negative(Bitmap bmp)
+{
+    var clone = (Bitmap)bmp.Clone();
+
+    for (int i = 0; i < clone.Width; i++)
+    {
+        for (int j = 0; j < clone.Height; j++)
+        {
+            var ogColor = clone.GetPixel(i, j);
+            var newColor = Color.FromArgb(ogColor.A, 255 - ogColor.R, 255 - ogColor.G, 255 - ogColor.B);
+            clone.SetPixel(i, j, newColor);
+        }
+    }
+
+    return clone;
+}
+
+#!csharp
+
+var negative = Negative(bmp);
+negative.Save(outputPath);
+
+#!csharp
+
+int[] HistogramGrayscale(Bitmap bmp, int bins = 10)
+{
+    var hist = new int[bins];
+
+    for (int i = 0; i < bmp.Width; i++)
+    {
+        for (int j = 0; j < bmp.Height; j++)
+        {
+            var color = bmp.GetPixel(i, j);
+            var luminosity = (0.3 * color.R) + (0.59 * color.G) + (0.11 * color.B);
+            var bin = (int)Math.Round(luminosity * (bins - 1) / 255);
+            hist[bin]++;
+        }
+    }
+
+    return hist;
+}
+
+#!csharp
+
+void WriteArray(int[] a)
+{
+    Console.Write($"[{string.Join(", ", a)}]");
+}
+
+#!csharp
+
+var hist = HistogramGrayscale(bmp);
+WriteArray(hist);
+
+Chart.Column<int, int, string>(hist)
