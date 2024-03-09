@@ -47,9 +47,10 @@ negative.Save(outputPath);
 
 #!csharp
 
-int[] HistogramGrayscale(Bitmap bmp, int bins = 10)
+double[] HistogramGrayscale(Bitmap bmp, int bins = 10)
 {
-    var hist = new int[bins];
+    var nPixels = (int)(bmp.Width * bmp.Height);
+    var hist = new double[bins];
 
     for (int i = 0; i < bmp.Width; i++)
     {
@@ -62,19 +63,261 @@ int[] HistogramGrayscale(Bitmap bmp, int bins = 10)
         }
     }
 
+    for (int i = 0; i < bins; i++)
+    {
+        hist[i] /= nPixels;
+    }
+
     return hist;
 }
 
 #!csharp
 
-void WriteArray(int[] a)
+void WriteArray(double[] a)
 {
     Console.Write($"[{string.Join(", ", a)}]");
 }
 
 #!csharp
 
-var hist = HistogramGrayscale(bmp);
-WriteArray(hist);
+var histGray = HistogramGrayscale(bmp);
+WriteArray(histGray);
 
-Chart.Column<int, int, string>(hist)
+Chart.Column<double, int, string>(histGray)
+
+#!csharp
+
+double[][] Histogram(Bitmap bmp, int bins = 10)
+{
+    var nPixels = (int)(bmp.Width * bmp.Height);
+    var hist = new double[3][];
+    hist[0] = new double[bins];
+    hist[1] = new double[bins];
+    hist[2] = new double[bins];
+
+    for (int i = 0; i < bmp.Width; i++)
+    {
+        for (int j = 0; j < bmp.Height; j++)
+        {
+            var color = bmp.GetPixel(i, j);
+            
+            var rBin = (int)Math.Round((double)color.R * (bins - 1) / 255);
+            var gBin = (int)Math.Round((double)color.G * (bins - 1) / 255);
+            var bBin = (int)Math.Round((double)color.B * (bins - 1) / 255);
+            
+            hist[0][rBin]++;
+            hist[1][gBin]++;
+            hist[2][bBin]++;
+        }
+    }
+
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < bins; j++)
+        {
+            hist[i][j] /= nPixels;
+        }
+    }
+
+    return hist;
+}
+
+#!csharp
+
+void Write2dArray(double[][] a)
+{
+    var sb = new StringBuilder("[");
+
+    for (int i = 0; i < a.Length; i++)
+    {
+        sb.Append("[");
+
+        for (int j = 0; j < a[i].Length; j++)
+        {
+            sb.Append(a[i][j]);
+
+            if (j < a[i].Length - 1)
+            {
+                sb.Append(", ");
+            }
+        }
+
+        sb.Append("]");
+        
+        if (i < a.Length - 1)
+        {
+            sb.Append(",\n ");
+        }
+    }
+
+    sb.Append("]");
+
+    Console.WriteLine(sb.ToString());
+}
+
+#!csharp
+
+var hist = Histogram(bmp);
+Write2dArray(hist);
+
+#!csharp
+
+Chart.Column<double, int, string>(hist[0])
+
+#!csharp
+
+Chart.Column<double, int, string>(hist[1])
+
+#!csharp
+
+Chart.Column<double, int, string>(hist[2])
+
+#!csharp
+
+double[] HistogramGrayscaleAccumulated(Bitmap bmp, int bins = 10)
+{
+    var histAcc = new double[bins];
+    var hist = HistogramGrayscale(bmp, bins);
+
+    histAcc[0] = hist[0];
+
+    for (int i = 1; i < bins; i++)
+    {
+        histAcc[i] = hist[i] + histAcc[i - 1];
+    }
+
+    return histAcc;
+}
+
+#!csharp
+
+var histAccGray = HistogramGrayscaleAccumulated(bmp);
+WriteArray(histAccGray);
+
+#!csharp
+
+Chart.Column<double, int, string>(histAccGray)
+
+#!csharp
+
+Bitmap HistogramGrayscaleNormalize(Bitmap bmp, int bins = 255)
+{
+    var copy = (Bitmap)bmp.Clone();
+    var hist = HistogramGrayscaleAccumulated(copy, bins);
+
+    for (int i = 0; i < copy.Width; i++)
+    {
+        for (int j = 0; j < copy.Height; j++)
+        {
+            var color = copy.GetPixel(i, j);
+            var luminosity = (0.3 * color.R) + (0.59 * color.G) + (0.11 * color.B);
+            var bin = (int)Math.Round(luminosity * (bins - 1) / 255);
+            var newColor = Color.FromArgb(color.A, (int)(hist[bin] * 255), (int)(hist[bin] * 255), (int)(hist[bin] * 255));
+
+            copy.SetPixel(i, j, newColor);
+        }
+    }
+
+    return copy;
+}
+
+#!csharp
+
+var normalizedGray = HistogramGrayscaleNormalize(bmp, 255);
+normalizedGray.Save($"output/{image}_normalized.bmp");
+
+#!csharp
+
+histAccGray = HistogramGrayscaleAccumulated(normalizedGray);
+WriteArray(histAccGray);
+
+Chart.Column<double, int, string>(histAccGray)
+
+#!csharp
+
+double[][] HistogramAccumulated(Bitmap bmp, int bins = 10)
+{
+    var hist = Histogram(bmp, bins);
+    var histAcc = new double[3][];
+    histAcc[0] = new double[bins];
+    histAcc[1] = new double[bins];
+    histAcc[2] = new double[bins];
+
+    histAcc[0][0] = hist[0][0];
+    histAcc[1][0] = hist[1][0];
+    histAcc[2][0] = hist[2][0];
+
+    for (int i = 1; i < bins; i++)
+    {
+        histAcc[0][i] = hist[0][i] + histAcc[0][i - 1];
+        histAcc[1][i] = hist[1][i] + histAcc[1][i - 1];
+        histAcc[2][i] = hist[2][i] + histAcc[2][i - 1];
+    }
+
+    return histAcc;
+}
+
+#!csharp
+
+var histAcc = HistogramAccumulated(bmp);
+Write2dArray(histAcc);
+
+#!csharp
+
+Chart.Column<double, int, string>(histAcc[0])
+
+#!csharp
+
+Chart.Column<double, int, string>(histAcc[1])
+
+#!csharp
+
+Chart.Column<double, int, string>(histAcc[2])
+
+#!csharp
+
+Bitmap HistogramNormalize(Bitmap bmp, int bins = 255)
+{
+    var copy = (Bitmap)bmp.Clone();
+    var hist = HistogramAccumulated(copy, bins);
+
+    for (int i = 0; i < copy.Width; i++)
+    {
+        for (int j = 0; j < copy.Height; j++)
+        {
+            var color = copy.GetPixel(i, j);
+            var rBin = (int)Math.Round((double)color.R * (bins - 1) / 255);
+            var gBin = (int)Math.Round((double)color.G * (bins - 1) / 255);
+            var bBin = (int)Math.Round((double)color.B * (bins - 1) / 255);
+            var newColor = Color.FromArgb(color.A,
+                (int)(hist[0][rBin] * 255),
+                (int)(hist[1][gBin] * 255),
+                (int)(hist[2][bBin] * 255));
+
+            copy.SetPixel(i, j, newColor);
+        }
+    }
+
+    return copy;
+}
+
+#!csharp
+
+var normalized = HistogramNormalize(bmp, 255);
+normalized.Save($"output/{image}_normalized.bmp");
+
+#!csharp
+
+histAcc = HistogramAccumulated(normalized);
+
+#!csharp
+
+Chart.Column<double, int, string>(histAcc[0])
+
+#!csharp
+
+Chart.Column<double, int, string>(histAcc[1])
+
+#!csharp
+
+Chart.Column<double, int, string>(histAcc[2])
