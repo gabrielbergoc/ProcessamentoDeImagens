@@ -43,7 +43,7 @@ Bitmap Negative(Bitmap bmp)
 #!csharp
 
 var negative = Negative(bmp);
-negative.Save(outputPath);
+negative.Save($"output/{image}_negative.bmp");
 
 #!csharp
 
@@ -200,7 +200,7 @@ Chart.Column<double, int, string>(histAccGray)
 
 #!csharp
 
-Bitmap HistogramGrayscaleNormalize(Bitmap bmp, int bins = 255)
+Bitmap HistogramGrayscaleEqualize(Bitmap bmp, int bins = 255)
 {
     var copy = (Bitmap)bmp.Clone();
     var hist = HistogramGrayscaleAccumulated(copy, bins);
@@ -223,8 +223,8 @@ Bitmap HistogramGrayscaleNormalize(Bitmap bmp, int bins = 255)
 
 #!csharp
 
-var normalizedGray = HistogramGrayscaleNormalize(bmp, 255);
-normalizedGray.Save($"output/{image}_normalized.bmp");
+var normalizedGray = HistogramGrayscaleEqualize(bmp, 255);
+normalizedGray.Save($"output/{image}_equalized.bmp");
 
 #!csharp
 
@@ -276,7 +276,7 @@ Chart.Column<double, int, string>(histAcc[2])
 
 #!csharp
 
-Bitmap HistogramNormalize(Bitmap bmp, int bins = 255)
+Bitmap HistogramEqualize(Bitmap bmp, int bins = 255)
 {
     var copy = (Bitmap)bmp.Clone();
     var hist = HistogramAccumulated(copy, bins);
@@ -303,8 +303,8 @@ Bitmap HistogramNormalize(Bitmap bmp, int bins = 255)
 
 #!csharp
 
-var normalized = HistogramNormalize(bmp, 255);
-normalized.Save($"output/{image}_normalized.bmp");
+var normalized = HistogramEqualize(bmp, 255);
+normalized.Save($"output/{image}_equalized.bmp");
 
 #!csharp
 
